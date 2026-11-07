@@ -1,4 +1,4 @@
-/* Chai Travel Advisors · Airline Directory · v1 (read-only) */
+/* Chai Travel Advisors · Airline Directory · v2 */
 const SUPABASE_URL = 'https://ijidkximugxmbxwbvdcs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wN5ikRMw9-4K8kS1B2_xJw_E1DNjXdv'; // publishable key: safe in the page, RLS enforces access
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -106,7 +106,7 @@ async function renderIndex(alive = () => true) {
 }
 
 /* ---------- carrier page ---------- */
-async function renderAirline(slug, alive = () => true) {
+async function renderAirline(slug, alive = () => true, editMode = false) {
   app.innerHTML = '<p class="muted">Loading…</p>';
   const { data: a } = await sb.from('airlines').select('*').eq('slug', slug).maybeSingle();
   if (!alive()) return;
@@ -118,6 +118,7 @@ async function renderAirline(slug, alive = () => true) {
     sb.from('links').select('*').eq('airline_id', a.id).order('position')
   ]);
   if (!alive()) return;
+  if (editMode) return renderAirlineEdit(a, { sections, contacts, contracts, links });
   const used = new Set();
   function lineHtml(l) {
     const hits = [];
@@ -141,7 +142,7 @@ async function renderAirline(slug, alive = () => true) {
   if (contracts.length) {
     // Notes from the page text: the remainder of any line that starts with a contract title (minus the "(CODE)")
     const cLines = sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'));
-    const notes = {}, leftover = [];
+    const cnotes = {}, leftover = [];
     for (const l of cLines) {
       const hit = contracts.filter(c => l.startsWith(c.title)).sort((x, y) => y.title.length - x.title.length)[0];
       if (!hit) { leftover.push(l); continue; }
@@ -149,7 +150,7 @@ async function renderAirline(slug, alive = () => true) {
       if (hit.tour_code) rest = rest.replace(new RegExp('^\\(\\s*' + hit.tour_code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\)\\s*'), '');
       rest = rest.replace(/^\(\s*[A-Z0-9/# ]{3,20}\s*\)\s*/, '');
       for (const o of contracts) if (o.id !== hit.id && rest.includes(o.title)) rest = rest.replace(o.title, '').replace(/\(\s*[A-Z0-9/# ]{3,20}\s*\)/, '').trim();
-      if (rest) notes[hit.id] = (notes[hit.id] ? notes[hit.id] + ' ' : '') + rest;
+      if (rest) cnotes[hit.id] = (cnotes[hit.id] ? cnotes[hit.id] + ' ' : '') + rest;
     }
     cards.push(`<div class="card wide"><h3>Contracts &amp; commission (${contracts.length})</h3><table class="ctab"><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
       const to = c.valid_to ? fmtDate(c.valid_to) : (c.valid_from ? 'UFN' : '');
@@ -157,18 +158,21 @@ async function renderAirline(slug, alive = () => true) {
       const doc = c.chai_file_path
         ? `<a class="pdf" href="#" data-doc="${esc(c.chai_file_path)}">${esc(c.title)}</a>`
         : c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener" title="Opens on the F1S SharePoint (F1S login required)">${esc(c.title)}</a>` : esc(c.title);
-      return `<tr><td>${doc}${notes[c.id] ? `<div class="cnote">${lineHtml(notes[c.id])}</div>` : ''}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
+      return `<tr><td>${doc}${cnotes[c.id] ? `<div class="cnote">${lineHtml(cnotes[c.id])}</div>` : ''}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
     }).join('')}${leftover.map(l => `<tr class="extra"><td colspan="3">${lineHtml(l)}</td></tr>`).join('')}</tbody></table></div>`);
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
   app.innerHTML = `<a class="back" href="#/">← All airlines</a>
-  <div class="ahead"><span class="big">${esc(a.code)}</span><h2>${esc(a.name)}</h2>${chip(a)}<span class="src"><a href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">F1S source page</a></span></div>
+  <div class="ahead"><span class="big">${esc(a.code)}</span><h2>${esc(a.name)}</h2>${chip(a)}${a.verified_at ? `<span class="chip ok" title="Checked by ${esc(a.verified_by || '')}">Verified ${fmtDate(a.verified_at.slice(0, 10))}</span>` : '<span class="chip warn">Unverified</span>'}
+    <span class="src"><button class="mini" id="rep">Report a problem</button> ${profile.role === 'admin' ? `<a class="mini" href="#/airline/${esc(a.slug)}/edit">Edit</a> ` : ''}<a href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">F1S source page</a></span></div>
+  ${a.notes ? `<p class="chai-note">${linkify(a.notes)}</p>` : ''}
   ${a.f1s_unavailable ? '<p class="empty">The F1S page for this carrier did not load during capture.</p>' : ''}
   <div class="cards">${cards.join('')}</div>
   ${secs}
   ${other.length ? `<section class="s"><h3>Other links</h3>${other.map(k => `<p><a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.label || k.url)}</a></p>`).join('')}</section>` : ''}
   <p class="note">Captured from the F1S page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. Not yet verified by Chai.</p>`;
+  document.getElementById('rep').onclick = () => reportProblem(a);
   // contract documents served from Chai's own storage via short-lived signed links
   document.querySelectorAll('a[data-doc]').forEach(a => a.onclick = async ev => {
     ev.preventDefault();
@@ -188,11 +192,11 @@ async function route() {
   if (!profile) await loadProfile();
   if (seq !== routeSeq) return;
   if (!profile || !profile.is_active) return renderNotAuthorized();
-  hdrRight.innerHTML = `<span>${esc(profile.full_name || profile.email)}${profile.role !== 'viewer' ? ' · ' + esc(profile.role) : ''}</span><button id="out">Sign out</button>`;
+  hdrRight.innerHTML = `${profile.role === 'admin' ? '<a href="#/admin">Admin</a>' : ''}<span>${esc(profile.full_name || profile.email)}${profile.role === 'admin' ? ' · admin' : ''}</span><button id="out">Sign out</button>`;
   document.getElementById('out').onclick = signOut;
-  const m = location.hash.match(/^#\/airline\/([a-z0-9\-]+)/);
+  const m = location.hash.match(/^#\/airline\/([a-z0-9\-]+)(\/edit)?/);
   try {
-    const work = m ? renderAirline(m[1], () => seq === routeSeq) : renderIndex(() => seq === routeSeq);
+    const work = location.hash.startsWith('#/admin') ? renderAdmin() : m ? renderAirline(m[1], () => seq === routeSeq, !!m[2] && profile.role === 'admin') : renderIndex(() => seq === routeSeq);
     await Promise.race([work, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))]);
   } catch (e) {
     if (seq !== routeSeq) return;
