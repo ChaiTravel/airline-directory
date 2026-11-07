@@ -14,6 +14,7 @@ function linkify(t) {
   s = s.replace(PHONE, m => { const d = m.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15 && !/^\d{2}[A-Z]{3}\d{2}$/.test(m) ? `<a href="tel:${(d.startsWith('1') || m.startsWith('+')) ? '+' + d : '+1' + d}">${m}</a>` : m; });
   return s;
 }
+const logo = (code, px) => `<img class="logo" src="https://pics.avs.io/${px}/${px}/${encodeURIComponent(code)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const fmtDate = d => { if (!d) return ''; const [y, m, dd] = d.split('-'); return dd + MON[+m - 1] + y.slice(2); };
 
@@ -87,8 +88,8 @@ async function renderIndex(alive = () => true) {
     const a = String(v(sortKey)).toLowerCase(), b = String(w(sortKey)).toLowerCase();
     return a < b ? -sortDir : a > b ? sortDir : 0;
   });
-  const rowHtml = a => `<tr class="row" data-slug="${esc(a.slug)}"><td>${esc(a.name)}</td><td class="code">${esc(a.code)}</td><td>${chip(a)}</td><td>${contactLine(a.rep) || '<span class="empty">—</span>'}</td><td>${a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(': ')) : '<span class="empty">—</span>'}</td></tr>`;
-  const head = `<thead><tr><th data-k="name">Airline</th><th data-k="code">Code</th><th data-k="commission_status">Status</th><th data-k="rep">Sales contact</th><th data-k="desk">Support desk</th></tr></thead>`;
+  const rowHtml = a => `<tr class="row" data-slug="${esc(a.slug)}"><td class="lg">${logo(a.code, 64)}</td><td>${esc(a.name)}</td><td class="code">${esc(a.code)}</td><td>${chip(a)}</td><td>${contactLine(a.rep) || '<span class="empty">—</span>'}</td><td>${a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(': ')) : '<span class="empty">—</span>'}</td></tr>`;
+  const head = `<thead><tr><th class="lg"></th><th data-k="name">Airline</th><th data-k="code">Code</th><th data-k="commission_status">Status</th><th data-k="rep">Sales contact</th><th data-k="desk">Support desk</th></tr></thead>`;
   const top = rows.filter(a => a.is_top), rest = rows.filter(a => !a.is_top);
   const group = (title, list) => list.length ? `<h3 class="grp">${title} <span class="muted">(${list.length})</span></h3><div class="wrap"><table>${head}<tbody>${list.map(rowHtml).join('')}</tbody></table></div>` : '';
   app.innerHTML = `
@@ -164,7 +165,7 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
   app.innerHTML = `<a class="back" href="#/">← All airlines</a>
-  <div class="ahead"><span class="big">${esc(a.code)}</span><h2>${esc(a.name)}</h2>${chip(a)}${a.verified_at ? `<span class="chip ok" title="Checked by ${esc(a.verified_by || '')}">Verified ${fmtDate(a.verified_at.slice(0, 10))}</span>` : '<span class="chip warn">Unverified</span>'}
+  <div class="ahead">${logo(a.code, 120)}<span class="big">${esc(a.code)}</span><h2>${esc(a.name)}</h2>${chip(a)}${a.verified_at ? `<span class="chip ok" title="Checked by ${esc(a.verified_by || '')}">Verified ${fmtDate(a.verified_at.slice(0, 10))}</span>` : '<span class="chip warn">Unverified</span>'}
     <span class="src"><button class="mini" id="rep">Report a problem</button> ${profile.role === 'admin' ? `<a class="mini" href="#/airline/${esc(a.slug)}/edit">Edit</a> ` : ''}<a href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">F1S source page</a></span></div>
   ${a.notes ? `<p class="chai-note">${linkify(a.notes)}</p>` : ''}
   ${a.f1s_unavailable ? '<p class="empty">The F1S page for this carrier did not load during capture.</p>' : ''}

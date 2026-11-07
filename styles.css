@@ -80,3 +80,7 @@ h3.grp{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--i
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:60}
 .toast.bad{background:var(--no)}
 p.hist{font-size:13px;margin:0 0 8px;border-bottom:1px solid var(--hair);padding-bottom:6px}
+
+td.lg,th.lg{width:44px;padding-right:0}
+td.lg .logo{width:32px;height:32px;object-fit:contain;display:block}
+.ahead .logo{width:56px;height:56px;object-fit:contain;align-self:center}
