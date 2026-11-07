@@ -58,5 +58,6 @@ h3.grp{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--i
 .card table.ctab td:first-child{width:70%}
 .card table.ctab tbody tr{border-bottom:1px solid var(--hair)}
 .cnote{font-size:13px;color:var(--ink2);margin-top:3px;padding-left:38px}
+.card table.ctab tr.extra td{color:var(--ink2);font-size:13px}
 .card table.ctab a.pdf{display:inline-block}
 .card > p{margin-top:10px}

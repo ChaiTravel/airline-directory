@@ -14,7 +14,8 @@ function linkify(t) {
   s = s.replace(PHONE, m => { const d = m.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15 && !/^\d{2}[A-Z]{3}\d{2}$/.test(m) ? `<a href="tel:${(d.startsWith('1') || m.startsWith('+')) ? '+' + d : '+1' + d}">${m}</a>` : m; });
   return s;
 }
-const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '').toUpperCase() : '';
+const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const fmtDate = d => { if (!d) return ''; const [y, m, dd] = d.split('-'); return dd + MON[+m - 1] + y.slice(2); };
 
 /* ---------- auth ---------- */
 let session = null, profile = null;
@@ -147,6 +148,7 @@ async function renderAirline(slug, alive = () => true) {
       let rest = l.slice(hit.title.length).trim();
       if (hit.tour_code) rest = rest.replace(new RegExp('^\\(\\s*' + hit.tour_code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\)\\s*'), '');
       rest = rest.replace(/^\(\s*[A-Z0-9/# ]{3,20}\s*\)\s*/, '');
+      for (const o of contracts) if (o.id !== hit.id && rest.includes(o.title)) rest = rest.replace(o.title, '').replace(/\(\s*[A-Z0-9/# ]{3,20}\s*\)/, '').trim();
       if (rest) notes[hit.id] = (notes[hit.id] ? notes[hit.id] + ' ' : '') + rest;
     }
     cards.push(`<div class="card wide"><h3>Contracts &amp; commission (${contracts.length})</h3><table class="ctab"><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
@@ -156,7 +158,7 @@ async function renderAirline(slug, alive = () => true) {
         ? `<a class="pdf" href="#" data-doc="${esc(c.chai_file_path)}">${esc(c.title)}</a>`
         : c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener" title="Opens on the F1S SharePoint (F1S login required)">${esc(c.title)}</a>` : esc(c.title);
       return `<tr><td>${doc}${notes[c.id] ? `<div class="cnote">${lineHtml(notes[c.id])}</div>` : ''}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
-    }).join('')}</tbody></table>${leftover.map(l => `<p>${lineHtml(l)}</p>`).join('')}</div>`);
+    }).join('')}${leftover.map(l => `<tr class="extra"><td colspan="3">${lineHtml(l)}</td></tr>`).join('')}</tbody></table></div>`);
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
