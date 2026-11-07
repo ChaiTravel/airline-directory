@@ -93,7 +93,7 @@ async function renderIndex(alive = () => true) {
   <div class="wrap"><table><thead><tr><th data-k="code">Code</th><th data-k="name">Airline</th><th data-k="commission_status">Status</th><th data-k="rep">Sales contact</th><th data-k="desk">Support desk</th><th>Contracts</th></tr></thead><tbody>
   ${rows.map(a => `<tr class="row" data-slug="${esc(a.slug)}"><td class="code">${esc(a.code)}</td><td>${esc(a.name)}</td><td>${chip(a)}</td><td>${contactLine(a.rep) || '<span class="empty">—</span>'}</td><td>${a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(': ')) : '<span class="empty">—</span>'}</td><td>${a.n || '<span class="empty">—</span>'}</td></tr>`).join('')}
   </tbody></table></div>
-  <p class="note">Source: First in Service partnership pages, US point of sale. Contract documents link to the F1S SharePoint and require an F1S login. Contract terms are an index, not verified commission rules.</p>`;
+  <p class="note">Source: First in Service partnership pages, US point of sale. Contract documents open from Chai’s own library (a few still link to the F1S SharePoint). Contract terms are an index, not verified commission rules.</p>`;
   const qi = document.getElementById('q');
   qi.oninput = e => { q = e.target.value; const pos = qi.selectionStart; renderIndex().then(() => { const n = document.getElementById('q'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
   document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { filter = b.dataset.f; renderIndex(); });
@@ -138,7 +138,10 @@ async function renderAirline(slug, alive = () => true) {
     cards.push(`<div class="card wide"><h3>Contracts &amp; commission (${contracts.length})</h3><table><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
       const to = c.valid_to ? fmtDate(c.valid_to) : (c.valid_from ? 'UFN' : '');
       const cls = c.valid_to && c.valid_to < today ? 'exp' : c.valid_to && c.valid_to <= soon ? 'soon' : '';
-      return `<tr><td>${c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener">${esc(c.title)}</a>` : esc(c.title)}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
+      const doc = c.chai_file_path
+        ? `<a class="pdf" href="#" data-doc="${esc(c.chai_file_path)}">${esc(c.title)}</a>`
+        : c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener" title="Opens on the F1S SharePoint (F1S login required)">${esc(c.title)}</a>` : esc(c.title);
+      return `<tr><td>${doc}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
     }).join('')}</tbody></table>${(sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'))).map(l => `<p>${lineHtml(l)}</p>`).join('')}</div>`);
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
@@ -150,6 +153,14 @@ async function renderAirline(slug, alive = () => true) {
   ${secs}
   ${other.length ? `<section class="s"><h3>Other links</h3>${other.map(k => `<p><a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.label || k.url)}</a></p>`).join('')}</section>` : ''}
   <p class="note">Captured from the F1S page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. Not yet verified by Chai.</p>`;
+  // contract documents served from Chai's own storage via short-lived signed links
+  document.querySelectorAll('a[data-doc]').forEach(a => a.onclick = async ev => {
+    ev.preventDefault();
+    const w = window.open('', '_blank');
+    const { data, error } = await sb.storage.from('contracts').createSignedUrl(a.dataset.doc, 600);
+    if (error || !data) { if (w) w.close(); alert('Could not open the document: ' + (error?.message || 'unknown error')); return; }
+    if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+  });
   window.scrollTo(0, 0);
 }
 
