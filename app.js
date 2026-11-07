@@ -52,7 +52,7 @@ async function loadProfile() {
 let AIRLINES = null;
 async function loadAirlines() {
   if (AIRLINES) return AIRLINES;
-  const { data, error } = await sb.from('airlines').select('id,code,name,slug,commission_status,f1s_unavailable').order('name');
+  const { data, error } = await sb.from('airlines').select('id,code,name,slug,commission_status,f1s_unavailable,is_top').order('name');
   if (error) throw error;
   // sales rep + support desk + contract count for the index
   const [{ data: contacts }, { data: contracts }] = await Promise.all([
@@ -86,13 +86,16 @@ async function renderIndex(alive = () => true) {
     const a = String(v(sortKey)).toLowerCase(), b = String(w(sortKey)).toLowerCase();
     return a < b ? -sortDir : a > b ? sortDir : 0;
   });
+  const rowHtml = a => `<tr class="row" data-slug="${esc(a.slug)}"><td>${esc(a.name)}</td><td class="code">${esc(a.code)}</td><td>${chip(a)}</td><td>${contactLine(a.rep) || '<span class="empty">—</span>'}</td><td>${a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(': ')) : '<span class="empty">—</span>'}</td></tr>`;
+  const head = `<thead><tr><th data-k="name">Airline</th><th data-k="code">Code</th><th data-k="commission_status">Status</th><th data-k="rep">Sales contact</th><th data-k="desk">Support desk</th></tr></thead>`;
+  const top = rows.filter(a => a.is_top), rest = rows.filter(a => !a.is_top);
+  const group = (title, list) => list.length ? `<h3 class="grp">${title} <span class="muted">(${list.length})</span></h3><div class="wrap"><table>${head}<tbody>${list.map(rowHtml).join('')}</tbody></table></div>` : '';
   app.innerHTML = `
   <div class="tools"><input type="search" id="q" placeholder="Search carrier, code, rep, desk, email…" value="${esc(q)}">
   <div class="seg"><button data-f="all" class="${filter === 'all' ? 'on' : ''}">All</button><button data-f="comm" class="${filter === 'comm' ? 'on' : ''}">Commission</button><button data-f="nocomm" class="${filter === 'nocomm' ? 'on' : ''}">No commission</button></div></div>
   <p class="count">${rows.length} of ${list.length} carriers</p>
-  <div class="wrap"><table><thead><tr><th data-k="code">Code</th><th data-k="name">Airline</th><th data-k="commission_status">Status</th><th data-k="rep">Sales contact</th><th data-k="desk">Support desk</th><th>Contracts</th></tr></thead><tbody>
-  ${rows.map(a => `<tr class="row" data-slug="${esc(a.slug)}"><td class="code">${esc(a.code)}</td><td>${esc(a.name)}</td><td>${chip(a)}</td><td>${contactLine(a.rep) || '<span class="empty">—</span>'}</td><td>${a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(': ')) : '<span class="empty">—</span>'}</td><td>${a.n || '<span class="empty">—</span>'}</td></tr>`).join('')}
-  </tbody></table></div>
+  ${group('Top carriers', top)}
+  ${group('All other carriers', rest)}
   <p class="note">Source: First in Service partnership pages, US point of sale. Contract documents open from Chai’s own library (a few still link to the F1S SharePoint). Contract terms are an index, not verified commission rules.</p>`;
   const qi = document.getElementById('q');
   qi.oninput = e => { q = e.target.value; const pos = qi.selectionStart; renderIndex().then(() => { const n = document.getElementById('q'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
@@ -135,14 +138,25 @@ async function renderAirline(slug, alive = () => true) {
   if (contacts.length) cards.push(`<div class="card"><h3>Contacts</h3>${contacts.map(c => `<p class="contact"><span class="lab">${esc(c.label || kindName[c.kind])}</span><br>${c.name ? `<span class="name">${esc(c.name)}</span> ` : ''}${c.phone ? linkify(c.phone) + ' ' : ''}${c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}${c.hours ? `<br><span class="muted">${esc(c.hours)}</span>` : ''}</p>`).join('')}</div>`);
   const today = new Date().toISOString().slice(0, 10), soon = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10);
   if (contracts.length) {
-    cards.push(`<div class="card wide"><h3>Contracts &amp; commission (${contracts.length})</h3><table><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
+    // Notes from the page text: the remainder of any line that starts with a contract title (minus the "(CODE)")
+    const cLines = sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'));
+    const notes = {}, leftover = [];
+    for (const l of cLines) {
+      const hit = contracts.filter(c => l.startsWith(c.title)).sort((x, y) => y.title.length - x.title.length)[0];
+      if (!hit) { leftover.push(l); continue; }
+      let rest = l.slice(hit.title.length).trim();
+      if (hit.tour_code) rest = rest.replace(new RegExp('^\\(\\s*' + hit.tour_code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\)\\s*'), '');
+      rest = rest.replace(/^\(\s*[A-Z0-9/# ]{3,20}\s*\)\s*/, '');
+      if (rest) notes[hit.id] = (notes[hit.id] ? notes[hit.id] + ' ' : '') + rest;
+    }
+    cards.push(`<div class="card wide"><h3>Contracts &amp; commission (${contracts.length})</h3><table class="ctab"><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
       const to = c.valid_to ? fmtDate(c.valid_to) : (c.valid_from ? 'UFN' : '');
       const cls = c.valid_to && c.valid_to < today ? 'exp' : c.valid_to && c.valid_to <= soon ? 'soon' : '';
       const doc = c.chai_file_path
         ? `<a class="pdf" href="#" data-doc="${esc(c.chai_file_path)}">${esc(c.title)}</a>`
         : c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener" title="Opens on the F1S SharePoint (F1S login required)">${esc(c.title)}</a>` : esc(c.title);
-      return `<tr><td>${doc}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
-    }).join('')}</tbody></table>${(sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'))).map(l => `<p>${lineHtml(l)}</p>`).join('')}</div>`);
+      return `<tr><td>${doc}${notes[c.id] ? `<div class="cnote">${lineHtml(notes[c.id])}</div>` : ''}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
+    }).join('')}</tbody></table>${leftover.map(l => `<p>${lineHtml(l)}</p>`).join('')}</div>`);
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
