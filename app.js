@@ -71,8 +71,9 @@ const contactLine = c => c ? esc([c.name, c.phone, c.email].filter(Boolean).join
 
 /* ---------- index ---------- */
 let filter = 'all', q = '', sortKey = 'name', sortDir = 1;
-async function renderIndex() {
+async function renderIndex(alive = () => true) {
   const list = await loadAirlines();
+  if (!alive()) return;
   const rows = list.filter(a => {
     if (filter === 'comm' && a.commission_status !== 'commission') return false;
     if (filter === 'nocomm' && a.commission_status === 'commission') return false;
@@ -94,16 +95,17 @@ async function renderIndex() {
   </tbody></table></div>
   <p class="note">Source: First in Service partnership pages, US point of sale. Contract documents link to the F1S SharePoint and require an F1S login. Contract terms are an index, not verified commission rules.</p>`;
   const qi = document.getElementById('q');
-  qi.oninput = e => { q = e.target.value; const pos = qi.selectionStart; renderIndex().then(() => { const n = document.getElementById('q'); n.focus(); n.setSelectionRange(pos, pos); }); };
+  qi.oninput = e => { q = e.target.value; const pos = qi.selectionStart; renderIndex().then(() => { const n = document.getElementById('q'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
   document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { filter = b.dataset.f; renderIndex(); });
   document.querySelectorAll('th[data-k]').forEach(t => t.onclick = () => { if (sortKey === t.dataset.k) sortDir = -sortDir; else { sortKey = t.dataset.k; sortDir = 1; } renderIndex(); });
   document.querySelectorAll('tr.row').forEach(r => r.onclick = () => { location.hash = '#/airline/' + r.dataset.slug; });
 }
 
 /* ---------- carrier page ---------- */
-async function renderAirline(slug) {
+async function renderAirline(slug, alive = () => true) {
   app.innerHTML = '<p class="muted">Loading…</p>';
   const { data: a } = await sb.from('airlines').select('*').eq('slug', slug).maybeSingle();
+  if (!alive()) return;
   if (!a) { app.innerHTML = '<p class="empty">Carrier not found.</p>'; return; }
   const [{ data: sections }, { data: contacts }, { data: contracts }, { data: links }] = await Promise.all([
     sb.from('airline_sections').select('*').eq('airline_id', a.id).order('position'),
@@ -111,6 +113,7 @@ async function renderAirline(slug) {
     sb.from('contracts').select('*').eq('airline_id', a.id).order('position'),
     sb.from('links').select('*').eq('airline_id', a.id).order('position')
   ]);
+  if (!alive()) return;
   const used = new Set();
   function lineHtml(l) {
     const hits = [];
@@ -151,27 +154,36 @@ async function renderAirline(slug) {
 }
 
 /* ---------- routing ---------- */
+let routeSeq = 0;
 async function route() {
+  const seq = ++routeSeq;            // only the latest navigation may paint
   if (!session) return renderLogin();
+  if (!profile) await loadProfile();
+  if (seq !== routeSeq) return;
   if (!profile || !profile.is_active) return renderNotAuthorized();
   hdrRight.innerHTML = `<span>${esc(profile.full_name || profile.email)}${profile.role !== 'viewer' ? ' · ' + esc(profile.role) : ''}</span><button id="out">Sign out</button>`;
   document.getElementById('out').onclick = signOut;
   const m = location.hash.match(/^#\/airline\/([a-z0-9\-]+)/);
-  try { if (m) await renderAirline(m[1]); else await renderIndex(); }
-  catch (e) { app.innerHTML = `<p class="empty">Couldn’t load data: ${esc(e.message || e)}</p>`; }
+  try {
+    const work = m ? renderAirline(m[1], () => seq === routeSeq) : renderIndex(() => seq === routeSeq);
+    await Promise.race([work, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))]);
+  } catch (e) {
+    if (seq !== routeSeq) return;
+    app.innerHTML = `<p class="empty">Couldn’t load data (${esc(e.message || e)}). <a href="#" id="retry">Try again</a></p>`;
+    document.getElementById('retry').onclick = ev => { ev.preventDefault(); AIRLINES = null; route(); };
+  }
 }
 window.addEventListener('hashchange', route);
 
 (async () => {
   const { data } = await sb.auth.getSession();
   session = data.session;
-  if (session) await loadProfile();
-  sb.auth.onAuthStateChange(async (ev, s) => {
-    const was = !!session; session = s;
-    if (session && (ev === 'SIGNED_IN' || !profile)) await loadProfile();
-    if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT' || (!was && session)) route();
+  // Never await Supabase calls inside this callback (it holds the auth lock); defer instead.
+  sb.auth.onAuthStateChange((ev, s) => {
+    session = s;
+    if (ev === 'SIGNED_OUT') { profile = null; setTimeout(route, 0); }
+    else if (ev === 'SIGNED_IN') { profile = null; setTimeout(route, 0); }
   });
-  // strip OAuth fragments supabase-js has consumed, keep our own routes
   if (location.hash.includes('access_token=')) history.replaceState(null, '', location.pathname + '#/');
   route();
 })();
