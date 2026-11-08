@@ -102,7 +102,7 @@ async function renderIndex(alive = () => true) {
   <section class="hero"><div class="wrap-in">
     <p class="kicker">US point of sale · ${list.length} carriers</p>
     <h1>Find a carrier.</h1>
-    <p class="sub">Sales contacts, support desks and commission contracts for every airline Chai sells.</p>
+    <p class="sub">Sales contacts, support desks and commission contracts.</p>
     <div class="tools"><label class="search"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search carriers</span>${ICON_SEARCH}<input type="search" id="q" placeholder="Carrier, code, rep, desk, email…" value="${esc(q)}" autocomplete="off"><button type="button" class="clear ${q ? 'show' : ''}" id="qx" aria-label="Clear search">✕</button></label></div>
   </div></section>
   <div class="wrap-in index-body">
