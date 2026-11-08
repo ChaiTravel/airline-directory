@@ -93,8 +93,7 @@ async function renderIndex(alive = () => true) {
     const h = [a.code, a.name, a.rep?.name, a.rep?.email, a.desk?.label, a.desk?.email, a.desk?.phone].join(' ').toLowerCase();
     return q.toLowerCase().split(/\s+/).every(w => h.includes(w));
   });
-  const meta = a => a.rep?.name ? `Sales · ${esc(a.rep.name)}` : a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(' · ')) : (a.n ? `${a.n} contract${a.n === 1 ? '' : 's'} on file` : '');
-  const tile = a => `<a class="tile" href="#/airline/${esc(a.slug)}"><span class="top">${logo(a.code, 320, 160)}${chip(a)}</span><span class="txt"><span class="code">${esc(a.code)}</span><span class="nm">${esc(a.name)}</span><span class="meta">${meta(a)}</span></span></a>`;
+  const tile = a => `<a class="tile" href="#/airline/${esc(a.slug)}"><span class="top">${logo(a.code, 320, 160)}${chip(a)}</span><span class="txt"><span class="code">${esc(a.code)}</span><span class="nm">${esc(a.name)}</span></span></a>`;
   const top = rows.filter(a => a.is_top), rest = rows.filter(a => !a.is_top);
   const searching = !!q || filter !== 'all';
   const expanded = searching || showRest;
