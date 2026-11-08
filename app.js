@@ -14,7 +14,12 @@ function linkify(t) {
   s = s.replace(PHONE, m => { const d = m.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15 && !/^\d{2}[A-Z]{3}\d{2}$/.test(m) ? `<a href="tel:${(d.startsWith('1') || m.startsWith('+')) ? '+' + d : '+1' + d}">${m}</a>` : m; });
   return s;
 }
-const logo = (code, px) => `<img class="logo" src="https://pics.avs.io/${px}/${px}/${encodeURIComponent(code)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+const logo = (code, px) => `<span class="lgbox"><img src="https://pics.avs.io/${px}/${px}/${encodeURIComponent(code)}.png" alt="" loading="lazy" onerror="this.parentNode.classList.add('nologo')"><span class="fb">${esc(code)}</span></span>`;
+const ICON_SEARCH = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E5B5C" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>';
+const ICON_INFO = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>';
+const ICON_LINK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B4C7E" stroke-width="2" stroke-linecap="round"><path d="M10 14a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"></path><path d="M14 10a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"></path></svg>';
+const initials = n => String(n || '?').trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+const isAdmin = () => profile?.role === 'admin';
 const MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const fmtDate = d => { if (!d) return ''; const [y, m, dd] = d.split('-'); return dd + MON[+m - 1] + y.slice(2); };
 
@@ -24,12 +29,16 @@ const SITE = location.origin + location.pathname.replace(/[^/]*$/, '');
 
 function renderLogin(msg) {
   hdrRight.innerHTML = '';
+  app.className = '';
   app.innerHTML = `<div class="login">
-    <h2>Sign in</h2>
-    <p>${msg ? esc(msg) : 'Use the Google or Microsoft account Chai has on file for you.'}</p>
-    <button class="btn" id="g"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>Sign in with Google</button>
-    <button class="btn" id="m"><svg viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg>Sign in with Microsoft</button>
-    <p class="muted" style="margin-top:28px;font-size:12px">Chai Travel Advisors · internal use</p>
+    <img src="chai-logo.png" alt="Chai Travel Advisors">
+    <div><h2>Airline Directory</h2><p style="margin-top:10px">Every carrier. One <em>resource.</em></p></div>
+    <div class="btns">
+    <button class="btn" id="g"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span>Continue with Google</span></button>
+    <button class="btn" id="m"><svg viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg><span>Continue with Microsoft</span></button>
+    </div>
+    <p class="fine">${msg ? esc(msg) : 'Access is by invitation. Not on the list? <a href="mailto:michael@chaitravel.com?subject=Airline%20Directory%20access">Ask an administrator</a>.'}</p>
+    <p class="foot">Chai Travel Advisors · internal use</p>
   </div>`;
   document.getElementById('g').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: SITE } });
   document.getElementById('m').onclick = () => sb.auth.signInWithOAuth({ provider: 'azure', options: { redirectTo: SITE, scopes: 'email openid profile' } });
@@ -68,42 +77,47 @@ async function loadAirlines() {
   return AIRLINES;
 }
 
-const chip = a => a.f1s_unavailable ? '<span class="chip warn">page unavailable</span>' : a.commission_status === 'commission' ? '<span class="chip ok">Commission</span>' : '<span class="chip no">No commission</span>';
+const chip = a => (a.f1s_unavailable && isAdmin()) ? '<span class="chip warn">page unavailable</span>' : a.commission_status === 'commission' ? '<span class="chip ok">Commission</span>' : '<span class="chip no">No commission</span>';
 const contactLine = c => c ? esc([c.name, c.phone, c.email].filter(Boolean).join(' · ') || c.label || '') : '';
 
 /* ---------- index ---------- */
-let filter = 'all', q = '', sortKey = 'name', sortDir = 1;
+let filter = 'all', q = '', showRest = false;
 async function renderIndex(alive = () => true) {
   const list = await loadAirlines();
   if (!alive()) return;
+  app.className = '';
   const rows = list.filter(a => {
     if (filter === 'comm' && a.commission_status !== 'commission') return false;
     if (filter === 'nocomm' && a.commission_status === 'commission') return false;
     if (!q) return true;
     const h = [a.code, a.name, a.rep?.name, a.rep?.email, a.desk?.label, a.desk?.email, a.desk?.phone].join(' ').toLowerCase();
     return q.toLowerCase().split(/\s+/).every(w => h.includes(w));
-  }).sort((x, y) => {
-    const v = k => k === 'rep' ? (x.rep?.name || '') : k === 'desk' ? (x.desk?.label || '') : (x[k] || '');
-    const w = k => k === 'rep' ? (y.rep?.name || '') : k === 'desk' ? (y.desk?.label || '') : (y[k] || '');
-    const a = String(v(sortKey)).toLowerCase(), b = String(w(sortKey)).toLowerCase();
-    return a < b ? -sortDir : a > b ? sortDir : 0;
   });
-  const rowHtml = a => `<tr class="row" data-slug="${esc(a.slug)}"><td class="lg">${logo(a.code, 64)}</td><td>${esc(a.name)}</td><td class="code">${esc(a.code)}</td><td>${chip(a)}</td><td>${contactLine(a.rep) || '<span class="empty">—</span>'}</td><td>${a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(': ')) : '<span class="empty">—</span>'}</td></tr>`;
-  const head = `<thead><tr><th class="lg"></th><th data-k="name">Airline</th><th data-k="code">Code</th><th data-k="commission_status">Status</th><th data-k="rep">Sales contact</th><th data-k="desk">Support desk</th></tr></thead>`;
+  const meta = a => a.rep?.name ? `Sales · ${esc(a.rep.name)}` : a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(' · ')) : (a.n ? `${a.n} contract${a.n === 1 ? '' : 's'} on file` : '');
+  const tile = a => `<a class="tile" href="#/airline/${esc(a.slug)}"><span class="top">${logo(a.code, 200)}${chip(a)}</span><span class="txt"><span class="code">${esc(a.code)}</span><span class="nm">${esc(a.name)}</span><span class="meta">${meta(a)}</span></span></a>`;
   const top = rows.filter(a => a.is_top), rest = rows.filter(a => !a.is_top);
-  const group = (title, list) => list.length ? `<h3 class="grp">${title} <span class="muted">(${list.length})</span></h3><div class="wrap"><table>${head}<tbody>${list.map(rowHtml).join('')}</tbody></table></div>` : '';
+  const searching = !!q || filter !== 'all';
+  const expanded = searching || showRest;
+  const group = (title, items) => items.length ? `<div class="grp"><h3>${title}<small>${items.length}</small></h3></div><div class="grid">${items.map(tile).join('')}</div>` : '';
   app.innerHTML = `
-  <div class="tools"><input type="search" id="q" placeholder="Search carrier, code, rep, desk, email…" value="${esc(q)}">
-  <div class="seg"><button data-f="all" class="${filter === 'all' ? 'on' : ''}">All</button><button data-f="comm" class="${filter === 'comm' ? 'on' : ''}">Commission</button><button data-f="nocomm" class="${filter === 'nocomm' ? 'on' : ''}">No commission</button></div></div>
-  <p class="count">${rows.length} of ${list.length} carriers</p>
-  ${group('Top carriers', top)}
-  ${group('All other carriers', rest)}
-  <p class="note">Source: First in Service partnership pages, US point of sale. Contract documents open from Chai’s own library (a few still link to the F1S SharePoint). Contract terms are an index, not verified commission rules.</p>`;
+  <section class="hero"><div class="wrap-in">
+    <p class="kicker">US point of sale · ${list.length} carriers</p>
+    <h1>Find a carrier.</h1>
+    <p class="sub">Sales contacts, support desks and commission contracts for every airline Chai sells.</p>
+    <div class="tools"><label class="search"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Search carriers</span>${ICON_SEARCH}<input type="search" id="q" placeholder="Carrier, code, rep, desk, email…" value="${esc(q)}" autocomplete="off"><button type="button" class="clear ${q ? 'show' : ''}" id="qx" aria-label="Clear search">✕</button></label></div>
+  </div></section>
+  <div class="wrap-in index-body">
+    <div class="filters"><div class="seg"><button data-f="all" class="${filter === 'all' ? 'on' : ''}">All carriers</button><button data-f="comm" class="${filter === 'comm' ? 'on' : ''}">Commission</button><button data-f="nocomm" class="${filter === 'nocomm' ? 'on' : ''}">No commission</button></div><p class="count">${searching ? `${rows.length} of ${list.length} carriers` : ''}</p></div>
+    ${rows.length ? '' : `<p class="nores">No carriers match “${esc(q)}”. Try the two-letter code or part of the name.</p>`}
+    ${group('Top carriers', top)}
+    ${expanded ? group(searching ? 'Other carriers' : 'All other carriers', rest) : (rest.length ? `<div class="more"><button id="more">Show all other carriers (${rest.length})</button></div>` : '')}
+  </div>
+  <footer class="site"><div class="wrap-in"><p class="note">Contract terms are an index of the documents on file, not verified commission rules.</p><p class="note">Source: airline partnership pages, US point of sale.</p></div></footer>`;
   const qi = document.getElementById('q');
   qi.oninput = e => { q = e.target.value; const pos = qi.selectionStart; renderIndex().then(() => { const n = document.getElementById('q'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }); };
+  document.getElementById('qx').onclick = () => { q = ''; renderIndex().then(() => document.getElementById('q')?.focus()); };
   document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { filter = b.dataset.f; renderIndex(); });
-  document.querySelectorAll('th[data-k]').forEach(t => t.onclick = () => { if (sortKey === t.dataset.k) sortDir = -sortDir; else { sortKey = t.dataset.k; sortDir = 1; } renderIndex(); });
-  document.querySelectorAll('tr.row').forEach(r => r.onclick = () => { location.hash = '#/airline/' + r.dataset.slug; });
+  const more = document.getElementById('more'); if (more) more.onclick = () => { showRest = true; renderIndex(); };
 }
 
 /* ---------- carrier page ---------- */
@@ -136,10 +150,24 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
     for (const h of hits) { out += linkify(l.slice(pos, h.start)) + `<a class="${h.k.is_pdf ? 'pdf' : ''}" href="${esc(h.k.url)}" target="_blank" rel="noopener">${esc(l.slice(h.start, h.end))}</a>`; pos = h.end; }
     return out + linkify(l.slice(pos));
   }
+  app.className = '';
   const kindName = { sales_rep: 'Sales', support_desk: 'Support', groups: 'Groups', frequent_flyer: 'Frequent flyer', rates: 'Rates', refunds: 'Refunds', other: 'Other' };
-  const cards = [];
-  if (contacts.length) cards.push(`<div class="card"><h3>Contacts</h3>${contacts.map(c => `<p class="contact"><span class="lab">${esc(c.label || kindName[c.kind])}</span><br>${c.name ? `<span class="name">${esc(c.name)}</span> ` : ''}${c.phone ? linkify(c.phone) + ' ' : ''}${c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}${c.hours ? `<br><span class="muted">${esc(c.hours)}</span>` : ''}</p>`).join('')}</div>`);
+  const admin = isAdmin();
   const today = new Date().toISOString().slice(0, 10), soon = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10);
+  const main = [];
+  // sales contacts: people cards
+  const people = contacts.filter(c => c.kind === 'sales_rep' || (c.name && c.kind !== 'support_desk'));
+  const desks = contacts.filter(c => !people.includes(c));
+  if (people.length) main.push(`<div class="sec"><h3>Sales contacts<small>${people.length} ${people.length === 1 ? 'person' : 'people'}</small></h3><div class="cards">${people.map(c => `<div class="card contact">
+      <span class="lab">${esc(c.label || kindName[c.kind] || '')}</span>
+      ${c.name ? `<span class="name">${esc(c.name)}</span>` : ''}
+      ${c.phone ? `<span class="tel">${linkify(c.phone)}</span>` : ''}
+      ${c.email ? `<span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>` : ''}
+      ${c.hours ? `<span class="muted" style="font-size:13px">${esc(c.hours)}</span>` : ''}</div>`).join('')}</div></div>`);
+  if (desks.length) main.push(`<div class="sec"><h3>Support desks</h3><div class="desks">${desks.map(c => `<div class="desk">
+      <span><b>${esc(c.label || kindName[c.kind] || '')}</b>${c.name ? `<br><span class="muted" style="font-size:13px">${esc(c.name)}</span>` : ''}</span>
+      <span class="tel">${c.phone ? linkify(c.phone) : (c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '<span class="empty">—</span>')}</span>
+      <span class="hrs">${esc(c.hours || '')}${c.phone && c.email ? `${c.hours ? ' · ' : ''}<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}</span></div>`).join('')}</div></div>`);
   if (contracts.length) {
     // Notes from the page text: the remainder of any line that starts with a contract title (minus the "(CODE)")
     const cLines = sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'));
@@ -153,26 +181,52 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
       for (const o of contracts) if (o.id !== hit.id && rest.includes(o.title)) rest = rest.replace(o.title, '').replace(/\(\s*[A-Z0-9/# ]{3,20}\s*\)/, '').trim();
       if (rest) cnotes[hit.id] = (cnotes[hit.id] ? cnotes[hit.id] + ' ' : '') + rest;
     }
-    cards.push(`<div class="card wide"><h3>Contracts &amp; commission (${contracts.length})</h3><table class="ctab"><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
+    main.push(`<div class="sec"><h3>Contracts &amp; commission<small>An index of the documents on file, not verified commission rules</small></h3><div class="tbl"><table class="ctab"><thead><tr><th>Program</th><th>Tour code</th><th>Valid</th></tr></thead><tbody>${contracts.map(c => {
       const to = c.valid_to ? fmtDate(c.valid_to) : (c.valid_from ? 'UFN' : '');
       const cls = c.valid_to && c.valid_to < today ? 'exp' : c.valid_to && c.valid_to <= soon ? 'soon' : '';
       const doc = c.chai_file_path
         ? `<a class="pdf" href="#" data-doc="${esc(c.chai_file_path)}">${esc(c.title)}</a>`
-        : c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener" title="Opens on the F1S SharePoint (F1S login required)">${esc(c.title)}</a>` : esc(c.title);
-      return `<tr><td>${doc}${cnotes[c.id] ? `<div class="cnote">${lineHtml(cnotes[c.id])}</div>` : ''}</td><td>${esc(c.tour_code || '')}</td><td class="${cls}">${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' (expired)' : ''}</td></tr>`;
-    }).join('')}${leftover.map(l => `<tr class="extra"><td colspan="3">${lineHtml(l)}</td></tr>`).join('')}</tbody></table></div>`);
+        : c.f1s_pdf_url ? `<a class="pdf" href="${esc(c.f1s_pdf_url)}" target="_blank" rel="noopener" title="Opens on the partner SharePoint (separate login required)">${esc(c.title)}</a>` : esc(c.title);
+      const valid = (c.valid_from || to) ? `<span class="dot"></span>${c.valid_from ? fmtDate(c.valid_from) + ' – ' : ''}${to}${cls === 'exp' ? ' · expired' : cls === 'soon' ? ' · expires soon' : ''}` : '<span class="empty">—</span>';
+      return `<tr><td>${doc}${cnotes[c.id] ? `<div class="cnote">${lineHtml(cnotes[c.id])}</div>` : ''}</td><td class="tcode">${esc(c.tour_code || '')}</td><td class="${cls}">${valid}</td></tr>`;
+    }).join('')}${leftover.map(l => `<tr class="extra"><td colspan="3">${lineHtml(l)}</td></tr>`).join('')}</tbody></table></div></div>`);
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
-  app.innerHTML = `<a class="back" href="#/">← All airlines</a>
-  <div class="ahead">${logo(a.code, 120)}<span class="big">${esc(a.code)}</span><h2>${esc(a.name)}</h2>${chip(a)}${a.verified_at ? `<span class="chip ok" title="Checked by ${esc(a.verified_by || '')}">Verified ${fmtDate(a.verified_at.slice(0, 10))}</span>` : '<span class="chip warn">Unverified</span>'}
-    <span class="src"><button class="mini" id="rep">Report a problem</button> ${profile.role === 'admin' ? `<a class="mini" href="#/airline/${esc(a.slug)}/edit">Edit</a> ` : ''}<a href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">F1S source page</a></span></div>
-  ${a.notes ? `<p class="chai-note">${linkify(a.notes)}</p>` : ''}
-  ${a.f1s_unavailable ? '<p class="empty">The F1S page for this carrier did not load during capture.</p>' : ''}
-  <div class="cards">${cards.join('')}</div>
-  ${secs}
-  ${other.length ? `<section class="s"><h3>Other links</h3>${other.map(k => `<p><a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.label || k.url)}</a></p>`).join('')}</section>` : ''}
-  <p class="note">Captured from the F1S page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. Not yet verified by Chai.</p>`;
+  // right rail
+  const phones = desks.filter(c => c.phone).slice(0, 4);
+  const verified = a.verified_at ? `Verified ${fmtDate(a.verified_at.slice(0, 10))}` : '';
+  const rail = `
+    <div class="glance"><h3>At a glance</h3><dl>
+      <div><dt>Commission</dt><dd>${a.commission_status === 'commission' ? 'Yes' : 'No'}</dd></div>
+      <div><dt>Contracts on file</dt><dd>${contracts.length}</dd></div>
+      ${a.verified_at ? `<div><dt>Verified by</dt><dd>${esc(a.verified_by || 'Chai')}</dd></div>` : (admin ? '<div><dt>Verified</dt><dd class="soon">Not yet</dd></div>' : '')}
+      ${admin && a.f1s_captured_at ? `<div><dt>Last captured</dt><dd>${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</dd></div>` : ''}
+    </dl></div>
+    ${phones.length ? `<div class="quick"><h3>Quick dial</h3>${phones.map(c => { const d = c.phone.replace(/\D/g, ''); return `<a href="tel:${(d.startsWith('1') || c.phone.startsWith('+')) ? '+' + d : '+1' + d}"><span class="lab">${esc(c.label || kindName[c.kind] || '')}</span><span class="tel">${esc(c.phone)}</span></a>`; }).join('')}</div>` : ''}
+    ${other.length ? `<div class="links"><h3>Other links</h3>${other.map(k => `<a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${k.is_pdf ? '' : ICON_LINK}<span>${esc(k.label || k.url)}</span></a>`).join('')}</div>` : ''}
+    ${admin ? `<p class="note">Captured from the partner page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.${a.verified_at ? '' : ' Not yet verified by Chai.'}</p>` : ''}`;
+  app.innerHTML = `
+  <div class="ahead-wrap"><div class="wrap-in">
+    <nav class="crumb" aria-label="Breadcrumb"><a href="#/">Airlines</a><span aria-hidden="true">/</span><b>${esc(a.name)}</b></nav>
+    <div class="ahead">${logo(a.code, 200)}
+      <div class="ttl">
+        <div class="row1"><h2>${esc(a.name)}</h2>${chip(a)}${verified ? `<span class="chip vf" title="Checked by ${esc(a.verified_by || '')}">${verified}</span>` : (admin ? '<span class="chip warn">Unverified</span>' : '')}</div>
+        <p class="meta"><span class="big">${esc(a.code)}</span>${a.is_top ? '<span>Top carrier</span>' : ''}<span>US point of sale</span></p>
+      </div>
+      <span class="src"><button class="mini" id="rep">Report a problem</button>${admin ? `<a class="mini" href="#/airline/${esc(a.slug)}/edit">Edit</a><a class="mini dark" href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">Source page</a>` : ''}</span>
+    </div>
+  </div></div>
+  <div class="body"><div class="wrap-in">
+    <div class="mainc">
+      ${a.notes ? `<p class="chai-note">${ICON_INFO}<span><strong>Chai note.</strong> ${linkify(a.notes)}</span></p>` : ''}
+      ${admin && a.f1s_unavailable ? `<p class="chai-note admin">${ICON_INFO}<span><strong>Admin note · hidden from advisors.</strong> The partner page for this carrier did not load during capture.</span></p>` : ''}
+      ${main.join('')}
+      ${secs}
+      ${!main.length && !secs ? '<p class="empty">Nothing on file for this carrier yet.</p>' : ''}
+    </div>
+    <aside class="rail">${rail}</aside>
+  </div></div>`;
   document.getElementById('rep').onclick = () => reportProblem(a);
   // contract documents served from Chai's own storage via short-lived signed links
   document.querySelectorAll('a[data-doc]').forEach(a => a.onclick = async ev => {
@@ -193,9 +247,11 @@ async function route() {
   if (!profile) await loadProfile();
   if (seq !== routeSeq) return;
   if (!profile || !profile.is_active) return renderNotAuthorized();
-  hdrRight.innerHTML = `${profile.role === 'admin' ? '<a href="#/admin">Admin</a>' : ''}<span>${esc(profile.full_name || profile.email)}${profile.role === 'admin' ? ' · admin' : ''}</span><button id="out">Sign out</button>`;
+  const onAdmin = location.hash.startsWith('#/admin');
+  hdrRight.innerHTML = `<a href="#/" class="${onAdmin ? '' : 'on'}">Airlines</a>${profile.role === 'admin' ? `<a href="#/admin" class="${onAdmin ? 'on' : ''}">Admin</a>` : ''}<span class="who">${esc(profile.full_name || profile.email)}${profile.role === 'admin' ? ' · admin' : ''}</span><span class="avatar" aria-hidden="true">${esc(initials(profile.full_name || profile.email))}</span><button id="out">Sign out</button>`;
   document.getElementById('out').onclick = signOut;
   const m = location.hash.match(/^#\/airline\/([a-z0-9\-]+)(\/edit)?/);
+  app.className = (onAdmin || (m && m[2])) ? 'epage' : '';
   try {
     const work = location.hash.startsWith('#/admin') ? renderAdmin() : m ? renderAirline(m[1], () => seq === routeSeq, !!m[2] && profile.role === 'admin') : renderIndex(() => seq === routeSeq);
     await Promise.race([work, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 15000))]);
