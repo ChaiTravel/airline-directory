@@ -128,9 +128,7 @@ footer.site .wrap-in{padding-top:20px;padding-bottom:28px;display:flex;justify-c
 
 .body{background:var(--band);flex:1}
 .body .wrap-in{padding-top:32px;padding-bottom:64px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
-.mainc{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:32px}
-.rail{flex:1 1 300px;width:100%;display:flex;flex-direction:column;gap:16px}
-@media (min-width:900px){.rail{max-width:360px}}
+.mainc{flex:1 1 100%;min-width:0;display:flex;flex-direction:column;gap:32px}
 .sec h3{margin:0 0 14px;font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:-.01em;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .sec h3 small{font-family:var(--sans);font-size:13px;color:var(--ink2);font-weight:400}
 .chai-note{display:flex;gap:14px;align-items:flex-start;background:var(--navy-soft);border-radius:var(--r);padding:18px 22px;margin:0;font-size:14px;overflow-wrap:anywhere}
@@ -142,6 +140,13 @@ footer.site .wrap-in{padding-top:20px;padding-bottom:28px;display:flex;justify-c
 .card h3{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);font-weight:600}
 .card p{margin:0;font-size:14px}
 .contact{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.toprow{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px;align-items:stretch}
+.toprow .sec{display:flex;flex-direction:column}
+.toprow .sec>.card,.toprow .sec>.quick{flex:1}
+.card.people{padding:4px 22px;gap:0}
+.card.people .contact{padding:16px 0;border-top:1px solid var(--hair)}
+.card.people .contact:first-child{border-top:0}
+.card.links{flex-direction:row;flex-wrap:wrap;gap:12px 28px}
 .contact .lab{color:var(--ink2);font-size:13px}
 .contact .name{font-weight:600;font-size:16px}
 .contact .tel a,.desk .tel a,.quick .tel{font-family:var(--serif);font-size:18px;color:var(--ink)}
@@ -175,17 +180,17 @@ section.s p{margin:0 0 8px;overflow-wrap:anywhere}section.s p:last-child{margin-
 .glance dl{margin:0;display:flex;flex-direction:column;gap:10px;font-size:14px}
 .glance dl div{display:flex;justify-content:space-between;gap:12px}
 .glance dt{color:var(--ink2)}.glance dd{margin:0;font-weight:500;text-align:right;overflow-wrap:anywhere}
-.quick{background:var(--ink);color:#F4F6FA;border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:12px}
+.quick{background:var(--ink);color:#F4F6FA;border-radius:var(--r);padding:22px 24px;display:flex;flex-direction:column;gap:14px;justify-content:center}
+.quick.empty-q p{margin:0;color:#AEB6C2;font-size:14px}
 .quick h3{color:#AEB6C2}
 .quick a{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:#F4F6FA;border-bottom:1px solid #35373D;padding-bottom:10px}
 .quick a:last-child{border-bottom:0;padding-bottom:0}
 .quick a:hover{text-decoration:none;color:#fff}
-.quick .tel{color:#F4F6FA}
-.quick .lab{font-size:14px}
+.quick .tel{color:#F4F6FA;font-size:22px}
+.quick .lab{font-size:15px}
 .links{gap:12px}
 .links a{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
 .links a svg{flex-shrink:0}
-.rail .note{padding:0 6px}
 
 /* ---------- editor & admin (edit.js) ---------- */
 .epage{max-width:1240px;margin:0 auto;padding:0 var(--pad) 64px;width:100%}

@@ -157,16 +157,23 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   // sales contacts: people cards
   const people = contacts.filter(c => c.kind === 'sales_rep' || (c.name && c.kind !== 'support_desk'));
   const desks = contacts.filter(c => !people.includes(c));
-  if (people.length) main.push(`<div class="sec"><h3>Sales contacts<small>${people.length} ${people.length === 1 ? 'person' : 'people'}</small></h3><div class="cards">${people.map(c => `<div class="card contact">
+  const phones = [...desks.filter(c => c.phone), ...people.filter(c => c.phone)].slice(0, 5);
+  const tel = p => { const d = p.replace(/\D/g, ''); return (d.startsWith('1') || p.startsWith('+')) ? '+' + d : '+1' + d; };
+  const peopleCard = people.length ? `<div class="card people">${people.map(c => `<div class="contact">
       <span class="lab">${esc(c.label || kindName[c.kind] || '')}</span>
       ${c.name ? `<span class="name">${esc(c.name)}</span>` : ''}
       ${c.phone ? `<span class="tel">${linkify(c.phone)}</span>` : ''}
       ${c.email ? `<span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>` : ''}
-      ${c.hours ? `<span class="muted" style="font-size:13px">${esc(c.hours)}</span>` : ''}</div>`).join('')}</div></div>`);
+      ${c.hours ? `<span class="muted" style="font-size:13px">${esc(c.hours)}</span>` : ''}</div>`).join('')}</div>` : '<div class="card people"><p class="empty">No sales contact on file.</p></div>';
+  const quickCard = phones.length ? `<div class="quick">${phones.map(c => `<a href="tel:${tel(c.phone)}"><span class="lab">${esc(c.label || c.name || kindName[c.kind] || '')}</span><span class="tel">${esc(c.phone)}</span></a>`).join('')}</div>` : '<div class="quick empty-q"><p>No phone numbers on file.</p></div>';
+  main.push(`<div class="toprow">
+    <div class="sec"><h3>Sales contacts</h3>${peopleCard}</div>
+    <div class="sec"><h3>Quick dial<small>Tap to call</small></h3>${quickCard}</div>
+  </div>`);
   if (desks.length) main.push(`<div class="sec"><h3>Support desks</h3><div class="desks">${desks.map(c => `<div class="desk">
       <span><b>${esc(c.label || kindName[c.kind] || '')}</b>${c.name ? `<br><span class="muted" style="font-size:13px">${esc(c.name)}</span>` : ''}</span>
-      <span class="tel">${c.phone ? linkify(c.phone) : (c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '<span class="empty">—</span>')}</span>
-      <span class="hrs">${esc(c.hours || '')}${c.phone && c.email ? `${c.hours ? ' · ' : ''}<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}</span></div>`).join('')}</div></div>`);
+      <span class="tel">${c.phone ? linkify(c.phone) : '<span class="empty">—</span>'}</span>
+      <span class="hrs">${[c.hours ? esc(c.hours) : '', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''].filter(Boolean).join(' · ')}</span></div>`).join('')}</div></div>`);
   if (contracts.length) {
     // Notes from the page text: the remainder of any line that starts with a contract title (minus the "(CODE)")
     const cLines = sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'));
@@ -192,25 +199,14 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
-  // right rail
-  const phones = desks.filter(c => c.phone).slice(0, 4);
-  const verified = a.verified_at ? `Verified ${fmtDate(a.verified_at.slice(0, 10))}` : '';
-  const rail = `
-    <div class="glance"><h3>At a glance</h3><dl>
-      <div><dt>Commission</dt><dd>${a.commission_status === 'commission' ? 'Yes' : 'No'}</dd></div>
-      <div><dt>Contracts on file</dt><dd>${contracts.length}</dd></div>
-      ${a.verified_at ? `<div><dt>Verified by</dt><dd>${esc(a.verified_by || 'Chai')}</dd></div>` : (admin ? '<div><dt>Verified</dt><dd class="soon">Not yet</dd></div>' : '')}
-      ${admin && a.f1s_captured_at ? `<div><dt>Last captured</dt><dd>${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</dd></div>` : ''}
-    </dl></div>
-    ${phones.length ? `<div class="quick"><h3>Quick dial</h3>${phones.map(c => { const d = c.phone.replace(/\D/g, ''); return `<a href="tel:${(d.startsWith('1') || c.phone.startsWith('+')) ? '+' + d : '+1' + d}"><span class="lab">${esc(c.label || kindName[c.kind] || '')}</span><span class="tel">${esc(c.phone)}</span></a>`; }).join('')}</div>` : ''}
-    ${other.length ? `<div class="links"><h3>Other links</h3>${other.map(k => `<a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${k.is_pdf ? '' : ICON_LINK}<span>${esc(k.label || k.url)}</span></a>`).join('')}</div>` : ''}
-    ${admin ? `<p class="note">Captured from the partner page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.${a.verified_at ? '' : ' Not yet verified by Chai.'}</p>` : ''}`;
+  const otherSec = other.length ? `<div class="sec"><h3>Other links</h3><div class="card links">${other.map(k => `<a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${k.is_pdf ? '' : ICON_LINK}<span>${esc(k.label || k.url)}</span></a>`).join('')}</div></div>` : '';
+  const adminNote = admin ? `<p class="note">Captured from the partner page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.${a.verified_at ? '' : ' Not yet verified by Chai.'}</p>` : '';
   app.innerHTML = `
   <div class="ahead-wrap"><div class="wrap-in">
     <nav class="crumb" aria-label="Breadcrumb"><a href="#/">Airlines</a><span aria-hidden="true">/</span><b>${esc(a.name)}</b></nav>
     <div class="ahead">${logo(a.code, 352, 176)}
       <div class="ttl">
-        <div class="row1"><h2>${esc(a.name)}</h2>${chip(a)}${verified ? `<span class="chip vf" title="Checked by ${esc(a.verified_by || '')}">${verified}</span>` : (admin ? '<span class="chip warn">Unverified</span>' : '')}</div>
+        <div class="row1"><h2>${esc(a.name)}</h2>${chip(a)}</div>
         <p class="meta"><span class="big">${esc(a.code)}</span>${a.is_top ? '<span>Top carrier</span>' : ''}<span>US point of sale</span></p>
       </div>
       <span class="src"><button class="mini" id="rep">Report a problem</button>${admin ? `<a class="mini" href="#/airline/${esc(a.slug)}/edit">Edit</a><a class="mini dark" href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">Source page</a>` : ''}</span>
@@ -222,9 +218,9 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
       ${admin && a.f1s_unavailable ? `<p class="chai-note admin">${ICON_INFO}<span><strong>Admin note · hidden from advisors.</strong> The partner page for this carrier did not load during capture.</span></p>` : ''}
       ${main.join('')}
       ${secs}
-      ${!main.length && !secs ? '<p class="empty">Nothing on file for this carrier yet.</p>' : ''}
+      ${otherSec}
+      ${adminNote}
     </div>
-    <aside class="rail">${rail}</aside>
   </div></div>`;
   document.getElementById('rep').onclick = () => reportProblem(a);
   // contract documents served from Chai's own storage via short-lived signed links
