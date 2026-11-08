@@ -1,11 +1,11 @@
-/* Chai Travel Advisors · Airline Directory · v3 redesign */
+/* Chai Travel Advisors · Airline Directory · v3 redesign · Playfair Display + Inter */
 :root{
   --ink:#242021;--ink2:#5E5B5C;--muted:#7C8089;
   --hair:#E3E6EB;--line:#C5CCD6;--tile:#F2F4F7;--band:#F6F8FB;--bg:#fff;
   --navy:#2B4C7E;--navy-soft:#E0E8F3;
   --ok:#2E6B3A;--okbg:#E5EFE6;--no:#5E5B5C;--nobg:#EEF0F3;--warn:#8A6214;--warnbg:#F6ECD6;
   --link:var(--navy);
-  --serif:"Fraunces",Georgia,"Times New Roman",serif;--sans:"Figtree",Arial,Helvetica,sans-serif;
+  --serif:"Playfair Display",Georgia,"Times New Roman",serif;--sans:"Inter",Arial,Helvetica,sans-serif;
   --pad:clamp(16px,3vw,32px);--r:16px;--r-s:12px;
 }
 *{box-sizing:border-box}
@@ -59,7 +59,7 @@ main>p.muted,main>p.empty{padding:40px var(--pad)}
 .hero{border-bottom:1px solid var(--hair)}
 .hero .wrap-in{padding-top:clamp(28px,5vw,52px);padding-bottom:clamp(24px,4vw,40px);display:flex;flex-direction:column;gap:18px}
 .hero .kicker{margin:0;font-size:13px;color:var(--navy);font-weight:600}
-.hero h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(34px,5vw,52px);line-height:1.05;letter-spacing:-.02em}
+.hero h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.6vw,48px);line-height:1.1;letter-spacing:-.01em}
 .hero .sub{margin:0;color:var(--ink2);font-size:16px;max-width:620px}
 .tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .search{flex:1 1 420px;display:flex;align-items:center;gap:12px;background:var(--tile);border:1px solid var(--hair);border-radius:999px;padding:0 10px 0 20px;height:56px}
@@ -118,7 +118,7 @@ footer.site .wrap-in{padding-top:20px;padding-bottom:28px;display:flex;justify-c
 .ahead .lgbox .fb{font-size:34px}
 .ahead .ttl{display:flex;flex-direction:column;gap:12px;flex:1 1 360px;min-width:0}
 .ahead .row1{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ahead h2{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(32px,5vw,46px);line-height:1.05;letter-spacing:-.02em}
+.ahead h2{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(30px,4.4vw,42px);line-height:1.1;letter-spacing:-.01em}
 .ahead .big{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--navy);background:var(--navy-soft);padding:3px 10px;border-radius:8px;letter-spacing:.06em}
 .ahead .meta{margin:0;color:var(--ink2);font-size:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ahead .src{display:flex;gap:10px;flex-wrap:wrap;align-self:center;font-size:14px}
