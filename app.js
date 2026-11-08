@@ -14,7 +14,7 @@ function linkify(t) {
   s = s.replace(PHONE, m => { const d = m.replace(/\D/g, ''); return d.length >= 10 && d.length <= 15 && !/^\d{2}[A-Z]{3}\d{2}$/.test(m) ? `<a href="tel:${(d.startsWith('1') || m.startsWith('+')) ? '+' + d : '+1' + d}">${m}</a>` : m; });
   return s;
 }
-const logo = (code, px) => `<span class="lgbox"><img src="https://pics.avs.io/${px}/${px}/${encodeURIComponent(code)}.png" alt="" loading="lazy" onerror="this.parentNode.classList.add('nologo')"><span class="fb">${esc(code)}</span></span>`;
+const logo = (code, w, h) => `<span class="lgbox"><img src="https://pics.avs.io/${w}/${h}/${encodeURIComponent(code)}.png" width="${w}" height="${h}" alt="" loading="lazy" onerror="this.parentNode.classList.add('nologo')"><span class="fb">${esc(code)}</span></span>`;
 const ICON_SEARCH = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5E5B5C" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>';
 const ICON_INFO = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg>';
 const ICON_LINK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2B4C7E" stroke-width="2" stroke-linecap="round"><path d="M10 14a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"></path><path d="M14 10a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"></path></svg>';
@@ -94,7 +94,7 @@ async function renderIndex(alive = () => true) {
     return q.toLowerCase().split(/\s+/).every(w => h.includes(w));
   });
   const meta = a => a.rep?.name ? `Sales · ${esc(a.rep.name)}` : a.desk ? esc([a.desk.label, a.desk.phone].filter(Boolean).join(' · ')) : (a.n ? `${a.n} contract${a.n === 1 ? '' : 's'} on file` : '');
-  const tile = a => `<a class="tile" href="#/airline/${esc(a.slug)}"><span class="top">${logo(a.code, 200)}${chip(a)}</span><span class="txt"><span class="code">${esc(a.code)}</span><span class="nm">${esc(a.name)}</span><span class="meta">${meta(a)}</span></span></a>`;
+  const tile = a => `<a class="tile" href="#/airline/${esc(a.slug)}"><span class="top">${logo(a.code, 320, 160)}${chip(a)}</span><span class="txt"><span class="code">${esc(a.code)}</span><span class="nm">${esc(a.name)}</span><span class="meta">${meta(a)}</span></span></a>`;
   const top = rows.filter(a => a.is_top), rest = rows.filter(a => !a.is_top);
   const searching = !!q || filter !== 'all';
   const expanded = searching || showRest;
@@ -209,7 +209,7 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   app.innerHTML = `
   <div class="ahead-wrap"><div class="wrap-in">
     <nav class="crumb" aria-label="Breadcrumb"><a href="#/">Airlines</a><span aria-hidden="true">/</span><b>${esc(a.name)}</b></nav>
-    <div class="ahead">${logo(a.code, 200)}
+    <div class="ahead">${logo(a.code, 352, 176)}
       <div class="ttl">
         <div class="row1"><h2>${esc(a.name)}</h2>${chip(a)}${verified ? `<span class="chip vf" title="Checked by ${esc(a.verified_by || '')}">${verified}</span>` : (admin ? '<span class="chip warn">Unverified</span>' : '')}</div>
         <p class="meta"><span class="big">${esc(a.code)}</span>${a.is_top ? '<span>Top carrier</span>' : ''}<span>US point of sale</span></p>
