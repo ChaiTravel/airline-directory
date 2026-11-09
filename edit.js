@@ -42,11 +42,13 @@ const F = {
     { key: 'name', label: 'Airline name' }, { key: 'code', label: 'Code' },
     { key: 'commission_status', label: 'Commission status', type: 'select', options: [['commission', 'Commission'], ['none', 'No commission'], ['unknown', 'Unknown']] },
     { key: 'is_top', label: 'Show in Top carriers', type: 'checkbox' },
+    { key: 'is_archived', label: 'Archived (hidden from advisors)', type: 'checkbox', hint: 'for carriers that have ceased operations or merged' },
     { key: 'notes', label: 'Chai notes', type: 'textarea', rows: 3, hint: 'shown at the top of the page' }
   ],
   contact: [
     { key: 'kind', label: 'Type', type: 'select', options: KINDS }, { key: 'label', label: 'Label', placeholder: 'e.g. Agency Desk (24/7)' },
-    { key: 'name', label: 'Name' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email', type: 'email' }, { key: 'hours', label: 'Hours' }, { key: 'notes', label: 'Notes' }
+    { key: 'name', label: 'Name' }, { key: 'phone', label: 'Phone (desk)', placeholder: '800.555.1212' }, { key: 'phone_mobile', label: 'Mobile', placeholder: 'reps only' }, { key: 'email', label: 'Email', type: 'email' },
+    { key: 'queue', label: 'GDS queue', placeholder: 'e.g. QP/QBA10/4', hint: 'Sabre queue for rate desks' }, { key: 'hours', label: 'Hours' }, { key: 'notes', label: 'Notes', hint: 'shown under the contact' }
   ],
   contract: [
     { key: 'title', label: 'Program title' }, { key: 'tour_code', label: 'Tour code' },
@@ -76,7 +78,7 @@ async function renderAirlineEdit(a, d) {
     <span class="src"><button class="mini" data-t="airline">Edit carrier</button> <button class="mini" data-t="verify">Mark verified</button> <button class="mini" data-t="history">History</button></span></div>
   ${a.notes ? `<p class="chai-note">${linkify(a.notes)}</p>` : ''}
   <section class="s"><h3>Contacts <button class="mini" data-t="add-contact">+ Add</button></h3>
-    ${contacts.map(c => row(`<b>${esc(c.label || c.kind)}</b> · ${esc([c.name, c.phone, c.email, c.hours].filter(Boolean).join(' · '))}`, act('contact', c.id) + act('del', c.id, 'data-tbl="contacts"'))).join('') || '<p class="empty">none</p>'}</section>
+    ${contacts.map(c => row(`<b>${esc(c.label || c.kind)}</b> · ${esc([c.name, c.phone, c.phone_mobile, c.queue, c.email, c.hours].filter(Boolean).join(' · '))}`, act('contact', c.id) + act('del', c.id, 'data-tbl="contacts"'))).join('') || '<p class="empty">none</p>'}</section>
   <section class="s"><h3>Contracts <button class="mini" data-t="add-contract">+ Add</button></h3>
     ${contracts.map(c => row(`<b>${esc(c.title)}</b> · ${esc(c.tour_code || '—')} · ${fmtDate(c.valid_from)}–${c.valid_to ? fmtDate(c.valid_to) : 'UFN'} · ${esc(c.status)}${c.chai_file_path ? ' · <span class="muted">PDF in Chai library</span>' : c.f1s_pdf_url ? ' · <span class="muted">F1S link only</span>' : ' · <span class="muted">no document</span>'}`, act('contract', c.id) + act('del', c.id, 'data-tbl="contracts"'))).join('') || '<p class="empty">none</p>'}</section>
   <section class="s"><h3>Sections <button class="mini" data-t="add-section">+ Add</button></h3>

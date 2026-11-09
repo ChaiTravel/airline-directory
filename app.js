@@ -63,7 +63,7 @@ async function loadProfile() {
 let AIRLINES = null;
 async function loadAirlines() {
   if (AIRLINES) return AIRLINES;
-  const { data, error } = await sb.from('airlines').select('id,code,name,slug,commission_status,f1s_unavailable,is_top').order('name');
+  const { data, error } = await sb.from('airlines').select('id,code,name,slug,commission_status,f1s_unavailable,is_top,is_archived').order('name');
   if (error) throw error;
   // sales rep + support desk + contract count for the index
   const [{ data: contacts }, { data: contracts }] = await Promise.all([
@@ -87,6 +87,7 @@ async function renderIndex(alive = () => true) {
   if (!alive()) return;
   app.className = '';
   const rows = list.filter(a => {
+    if (a.is_archived && !isAdmin()) return false;
     if (filter === 'comm' && a.commission_status !== 'commission') return false;
     if (filter === 'nocomm' && a.commission_status === 'commission') return false;
     if (!q) return true;
@@ -229,6 +230,7 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   </div></div>
   <div class="body"><div class="wrap-in">
     <div class="mainc">
+      ${a.is_archived ? `<p class="chai-note admin">${ICON_INFO}<span><strong>Archived.</strong> This carrier has ceased operations or merged; the page is kept for reference${admin ? ' and is hidden from advisors' : ''}.</span></p>` : ''}
       ${a.notes ? `<p class="chai-note">${ICON_INFO}<span><strong>Chai note.</strong> ${linkify(a.notes)}</span></p>` : ''}
       ${admin && a.f1s_unavailable ? `<p class="chai-note admin">${ICON_INFO}<span><strong>Admin note · hidden from advisors.</strong> The partner page for this carrier did not load during capture.</span></p>` : ''}
       ${main.join('')}
