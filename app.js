@@ -146,7 +146,9 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
     }
     if (!hits.length) return linkify(l);
     hits.sort((p, r) => p.start - r.start); let out = '', pos = 0;
-    for (const h of hits) { out += linkify(l.slice(pos, h.start)) + `<a class="${h.k.is_pdf ? 'pdf' : ''}" href="${esc(h.k.url)}" target="_blank" rel="noopener">${esc(l.slice(h.start, h.end))}</a>`; pos = h.end; }
+    for (const h of hits) { out += linkify(l.slice(pos, h.start)) + (h.k.chai_file_path
+      ? `<a class="pdf" href="#" data-doc="${esc(h.k.chai_file_path)}">${esc(l.slice(h.start, h.end))}</a>`
+      : `<a class="${h.k.is_pdf ? 'pdf' : ''}" href="${esc(h.k.url)}" target="_blank" rel="noopener">${esc(l.slice(h.start, h.end))}</a>`); pos = h.end; }
     return out + linkify(l.slice(pos));
   }
   app.className = '';
