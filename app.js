@@ -1,4 +1,4 @@
-/* Chai Travel Advisors · Airline Directory · v20 */
+/* Chai Travel Advisors · Airline Directory · v21 */
 const SUPABASE_URL = 'https://ijidkximugxmbxwbvdcs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wN5ikRMw9-4K8kS1B2_xJw_E1DNjXdv'; // publishable key: safe in the page, RLS enforces access
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -41,8 +41,8 @@ function renderLogin(msg) {
     <form class="magic" id="magic" novalidate>
       <label for="ml-email" class="sr">Work email</label>
       <input type="email" id="ml-email" name="email" placeholder="you@youragency.com" autocomplete="email" required>
-      <button type="submit" class="btn2 primary" id="ml-go">Email me a sign-in link</button>
-      <p class="hint">No Google or Microsoft account? We’ll send a one-time link to your email.</p>
+      <button type="submit" class="btn2 primary" id="ml-go">Email me a sign-in code</button>
+      <p class="hint">No Google or Microsoft account? We’ll email you a one-time 6-digit code.</p>
     </form>
     <p class="fine">${msg ? esc(msg) : 'Access is by invitation. Not on the list? <a href="mailto:michael@chaitravel.com?subject=Airline%20Directory%20access">Ask an administrator</a>.'}</p>
     <p class="foot">Chai Travel Advisors · internal use</p>
@@ -61,13 +61,36 @@ async function sendMagicLink(e) {
   go.disabled = true; go.textContent = 'Sending…';
   const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: SITE } });
   if (error) {
-    go.disabled = false; go.textContent = 'Email me a sign-in link';
-    const msg = /rate|limit/i.test(error.message) ? 'Too many requests — please wait a minute and try again.' : 'We couldn’t send the link. Please try again or use Google / Microsoft.';
+    go.disabled = false; go.textContent = 'Email me a sign-in code';
+    const msg = /rate|limit/i.test(error.message) ? 'Too many requests — please wait a minute and try again.' : 'We couldn’t send the code. Please try again or use Google / Microsoft.';
     form.querySelector('.hint').innerHTML = `<span class="err">${esc(msg)}</span>`;
     return;
   }
-  form.innerHTML = `<div class="sent"><strong>Check your inbox.</strong><p>We sent a sign-in link to <b>${esc(email)}</b>. It expires in one hour and can be used once. If it doesn’t arrive, check spam or <a href="#" id="ml-again">send another</a>.</p></div>`;
+  form.innerHTML = `<div class="sent"><strong>Check your inbox.</strong><p>We emailed a 6-digit code to <b>${esc(email)}</b>. Enter it below — it expires in one hour.</p></div>
+    <label for="ml-code" class="sr">Sign-in code</label>
+    <input type="text" id="ml-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="123456" class="code" autofocus>
+    <button type="submit" class="btn2 primary" id="ml-verify">Sign in</button>
+    <p class="hint">Didn’t get it? Check spam, or <a href="#" id="ml-again">send another code</a>.</p>`;
   form.querySelector('#ml-again').onclick = ev => { ev.preventDefault(); renderLogin(); document.getElementById('ml-email').value = email; };
+  form.onsubmit = ev => verifyCode(ev, email);
+  form.querySelector('#ml-code').focus();
+}
+
+async function verifyCode(e, email) {
+  e.preventDefault();
+  const form = e.currentTarget, input = form.querySelector('#ml-code'), go = form.querySelector('#ml-verify');
+  const token = input.value.replace(/\D/g, '');
+  if (token.length !== 6) { input.focus(); form.querySelector('.hint').innerHTML = '<span class="err">Enter the 6-digit code from the email.</span>'; return; }
+  go.disabled = true; go.textContent = 'Checking…';
+  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) {
+    go.disabled = false; go.textContent = 'Sign in';
+    const msg = /expired|invalid|not found/i.test(error.message) ? 'That code didn’t match or has expired. Check the latest email, or send a new one.' : 'Something went wrong. Please try again.';
+    form.querySelector('.hint').innerHTML = `<span class="err">${esc(msg)}</span> <a href="#" id="ml-again">Send another code</a>`;
+    form.querySelector('#ml-again').onclick = ev => { ev.preventDefault(); renderLogin(); document.getElementById('ml-email').value = email; };
+    input.select();
+  }
+  // on success onAuthStateChange fires SIGNED_IN and routes into the site
 }
 
 function renderNotAuthorized() {
