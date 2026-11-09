@@ -162,9 +162,11 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   const peopleCard = people.length ? `<div class="card people">${people.map(c => `<div class="contact">
       <span class="lab">${esc(c.label || kindName[c.kind] || '')}</span>
       ${c.name ? `<span class="name">${esc(c.name)}</span>` : ''}
-      ${c.phone ? `<span class="tel">${linkify(c.phone)}</span>` : ''}
+      ${c.phone ? `<span class="tel">${linkify(c.phone)}${c.phone_mobile ? '<span class="tlab">desk</span>' : ''}</span>` : ''}
+      ${c.phone_mobile ? `<span class="tel">${linkify(c.phone_mobile)}<span class="tlab">mobile</span></span>` : ''}
       ${c.email ? `<span><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></span>` : ''}
-      ${c.hours ? `<span class="muted" style="font-size:13px">${esc(c.hours)}</span>` : ''}</div>`).join('')}</div>` : '<div class="card people"><p class="empty">No sales contact on file.</p></div>';
+      ${c.hours ? `<span class="muted" style="font-size:13px">${esc(c.hours)}</span>` : ''}
+      ${c.notes ? `<span class="muted" style="font-size:13px">${linkify(c.notes)}</span>` : ''}</div>`).join('')}</div>` : '<div class="card people"><p class="empty">No sales contact on file.</p></div>';
   const quickCard = phones.length ? `<div class="quick">${phones.map(c => `<a href="tel:${tel(c.phone)}"><span class="lab">${esc(c.label || c.name || kindName[c.kind] || '')}</span><span class="tel">${esc(c.phone)}</span></a>`).join('')}</div>` : '<div class="quick empty-q"><p>No phone numbers on file.</p></div>';
   main.push(`<div class="toprow">
     <div class="sec"><h3>Sales contacts</h3>${peopleCard}</div>
@@ -172,8 +174,8 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   </div>`);
   if (desks.length) main.push(`<div class="sec"><h3>Support desks</h3><div class="desks">${desks.map(c => `<div class="desk">
       <span><b>${esc(c.label || kindName[c.kind] || '')}</b>${c.name ? `<br><span class="muted" style="font-size:13px">${esc(c.name)}</span>` : ''}</span>
-      <span class="tel">${c.phone ? linkify(c.phone) : '<span class="empty">—</span>'}</span>
-      <span class="hrs">${[c.hours ? esc(c.hours) : '', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''].filter(Boolean).join(' · ')}</span></div>`).join('')}</div></div>`);
+      <span class="tel">${c.phone ? linkify(c.phone) : c.queue ? `<span class="queue" title="Sabre queue">${esc(c.queue)}</span>` : c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '<span class="empty">—</span>'}</span>
+      <span class="hrs">${[c.hours ? esc(c.hours) : '', (c.phone || c.queue) && c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '', c.phone && c.queue ? `<span class="queue">${esc(c.queue)}</span>` : '', c.notes ? linkify(c.notes) : ''].filter(Boolean).join(' · ')}</span></div>`).join('')}</div></div>`);
   if (contracts.length) {
     // Notes from the page text: the remainder of any line that starts with a contract title (minus the "(CODE)")
     const cLines = sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'));
@@ -199,8 +201,10 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   }
   const secs = sections.filter(s => s.heading !== 'Contracts & commission').map(s => `<section class="s"><h3>${lineHtml(s.heading)}</h3>${s.body.split('\n').map(l => `<p>${lineHtml(l)}</p>`).join('')}</section>`).join('');
   const other = links.filter(k => !used.has(k.id) && !contracts.some(c => c.f1s_pdf_url === k.url));
-  const otherSec = other.length ? `<div class="sec"><h3>Other links</h3><div class="card links">${other.map(k => `<a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${k.is_pdf ? '' : ICON_LINK}<span>${esc(k.label || k.url)}</span></a>`).join('')}</div></div>` : '';
-  const adminNote = admin ? `<p class="note">Captured from the partner page “${esc(a.f1s_page_title || a.name)}” on ${new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.${a.verified_at ? '' : ' Not yet verified by Chai.'}</p>` : '';
+  const otherSec = other.length ? `<div class="sec"><h3>Other links</h3><div class="card links">${other.map(k => k.chai_file_path
+    ? `<a class="pdf" href="#" data-doc="${esc(k.chai_file_path)}"><span>${esc(k.label || k.chai_file_path.split('/').pop())}</span></a>`
+    : `<a class="${k.is_pdf ? 'pdf' : ''}" href="${esc(k.url)}" target="_blank" rel="noopener">${k.is_pdf ? '' : ICON_LINK}<span>${esc(k.label || k.url)}</span></a>`).join('')}</div></div>` : '';
+  const adminNote = admin ? `<p class="note">Last captured ${a.f1s_captured_at ? new Date(a.f1s_captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}.${a.verified_at ? '' : ' Not yet verified by Chai.'}</p>` : '';
   app.innerHTML = `
   <div class="ahead-wrap"><div class="wrap-in">
     <nav class="crumb" aria-label="Breadcrumb"><a href="#/">Airlines</a><span aria-hidden="true">/</span><b>${esc(a.name)}</b></nav>
@@ -209,7 +213,7 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
         <div class="row1"><h2>${esc(a.name)}</h2>${chip(a)}</div>
         <p class="meta"><span class="big">${esc(a.code)}</span>${a.is_top ? '<span>Top carrier</span>' : ''}<span>US point of sale</span></p>
       </div>
-      <span class="src"><button class="mini" id="rep">Report a problem</button>${admin ? `<a class="mini" href="#/airline/${esc(a.slug)}/edit">Edit</a><a class="mini dark" href="${esc(a.f1s_source_url)}" target="_blank" rel="noopener">Source page</a>` : ''}</span>
+      <span class="src"><button class="mini" id="rep">Report a problem</button>${admin ? `<a class="mini dark" href="#/airline/${esc(a.slug)}/edit">Edit</a>` : ''}</span>
     </div>
   </div></div>
   <div class="body"><div class="wrap-in">

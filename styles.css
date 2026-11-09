@@ -150,6 +150,8 @@ footer.site .wrap-in{padding-top:20px;padding-bottom:28px;display:flex;justify-c
 .card.people .contact:first-child{border-top:0}
 .card.links{flex-direction:row;flex-wrap:wrap;gap:12px 28px}
 .contact .lab{color:var(--ink2);font-size:13px}
+.tlab{font-family:var(--sans);font-size:11px;color:var(--muted);margin-left:8px;text-transform:uppercase;letter-spacing:.06em}
+.queue{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;background:var(--tile);padding:2px 8px;border-radius:6px;white-space:nowrap}
 .contact .name{font-weight:600;font-size:16px}
 .contact .tel a,.desk .tel a,.quick .tel{font-family:var(--serif);font-size:18px;color:var(--ink)}
 .desks{background:var(--bg);border:1px solid var(--hair);border-radius:var(--r);overflow:hidden}
