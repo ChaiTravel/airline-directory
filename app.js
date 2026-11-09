@@ -1,4 +1,4 @@
-/* Chai Travel Advisors · Airline Directory · v2 */
+/* Chai Travel Advisors · Airline Directory · v20 */
 const SUPABASE_URL = 'https://ijidkximugxmbxwbvdcs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wN5ikRMw9-4K8kS1B2_xJw_E1DNjXdv'; // publishable key: safe in the page, RLS enforces access
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -37,11 +37,37 @@ function renderLogin(msg) {
     <button class="btn" id="g"><svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.3 0 11.7-2.1 15.6-5.7l-7.7-6c-2.1 1.4-4.8 2.3-7.9 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span>Continue with Google</span></button>
     <button class="btn" id="m"><svg viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z"/><path fill="#81bc06" d="M12 1h10v10H12z"/><path fill="#05a6f0" d="M1 12h10v10H1z"/><path fill="#ffba08" d="M12 12h10v10H12z"/></svg><span>Continue with Microsoft</span></button>
     </div>
+    <div class="or"><span>or</span></div>
+    <form class="magic" id="magic" novalidate>
+      <label for="ml-email" class="sr">Work email</label>
+      <input type="email" id="ml-email" name="email" placeholder="you@youragency.com" autocomplete="email" required>
+      <button type="submit" class="btn2 primary" id="ml-go">Email me a sign-in link</button>
+      <p class="hint">No Google or Microsoft account? We’ll send a one-time link to your email.</p>
+    </form>
     <p class="fine">${msg ? esc(msg) : 'Access is by invitation. Not on the list? <a href="mailto:michael@chaitravel.com?subject=Airline%20Directory%20access">Ask an administrator</a>.'}</p>
     <p class="foot">Chai Travel Advisors · internal use</p>
   </div>`;
   document.getElementById('g').onclick = () => sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: SITE } });
   document.getElementById('m').onclick = () => sb.auth.signInWithOAuth({ provider: 'azure', options: { redirectTo: SITE, scopes: 'email openid profile' } });
+  document.getElementById('magic').onsubmit = sendMagicLink;
+}
+
+async function sendMagicLink(e) {
+  e.preventDefault();
+  const form = e.currentTarget, input = form.querySelector('#ml-email'), go = form.querySelector('#ml-go');
+  const email = input.value.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { input.focus(); input.setCustomValidity('Enter a valid email address'); input.reportValidity(); return; }
+  input.setCustomValidity('');
+  go.disabled = true; go.textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: SITE } });
+  if (error) {
+    go.disabled = false; go.textContent = 'Email me a sign-in link';
+    const msg = /rate|limit/i.test(error.message) ? 'Too many requests — please wait a minute and try again.' : 'We couldn’t send the link. Please try again or use Google / Microsoft.';
+    form.querySelector('.hint').innerHTML = `<span class="err">${esc(msg)}</span>`;
+    return;
+  }
+  form.innerHTML = `<div class="sent"><strong>Check your inbox.</strong><p>We sent a sign-in link to <b>${esc(email)}</b>. It expires in one hour and can be used once. If it doesn’t arrive, check spam or <a href="#" id="ml-again">send another</a>.</p></div>`;
+  form.querySelector('#ml-again').onclick = ev => { ev.preventDefault(); renderLogin(); document.getElementById('ml-email').value = email; };
 }
 
 function renderNotAuthorized() {
