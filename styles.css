@@ -141,26 +141,31 @@ footer.site .wrap-in{padding-top:20px;padding-bottom:28px;display:flex;justify-c
 .card.wide{grid-column:1 / -1}
 .card h3{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);font-weight:600}
 .card p{margin:0;font-size:14px}
-.contact{display:flex;flex-direction:column;gap:4px;font-size:14px}
+.contact{display:flex;flex-direction:column;gap:6px;font-size:15px}
 .toprow{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px;align-items:stretch}
 .toprow .sec{display:flex;flex-direction:column}
 .toprow .sec>.card,.toprow .sec>.quick{flex:1}
-.card.people{padding:4px 22px;gap:0}
-.card.people .contact{padding:16px 0;border-top:1px solid var(--hair)}
+.card.people{padding:6px 24px;gap:0}
+.card.people .contact{padding:20px 0;border-top:1px solid var(--hair)}
 .card.people .contact:first-child{border-top:0}
 .card.links{flex-direction:row;flex-wrap:wrap;gap:12px 28px}
-.contact .lab{color:var(--ink2);font-size:13px}
+.contact .lab{color:var(--ink2);font-size:14px}
 .tlab{font-family:var(--sans);font-size:11px;color:var(--muted);margin-left:8px;text-transform:uppercase;letter-spacing:.06em}
 .queue{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;background:var(--tile);padding:2px 8px;border-radius:6px;white-space:nowrap}
-.contact .name{font-weight:600;font-size:16px}
-.contact .tel a,.desk .tel a,.quick .tel{font-family:var(--serif);font-size:18px;color:var(--ink)}
+.contact .name{font-weight:600;font-size:22px;line-height:1.2}
+.contact .tel a,.quick .tel{font-family:var(--serif);font-size:22px;color:var(--ink)}
+.contact a[href^=mailto]{font-size:16px}
 .desks{background:var(--bg);border:1px solid var(--hair);border-radius:var(--r);overflow:hidden}
-.desk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 16px;padding:16px 22px;border-bottom:1px solid var(--hair);align-items:center}
+.desk{display:grid;grid-template-columns:minmax(160px,1.1fr) minmax(170px,1fr) minmax(170px,1fr);gap:10px 20px;padding:16px 22px;border-bottom:1px solid var(--hair);align-items:start}
+@media (max-width:720px){.desk{grid-template-columns:1fr}}
+.desk .dl,.desk .dc{display:flex;flex-direction:column;gap:3px;min-width:0}
+.desk .sub{font-size:13px;color:var(--ink2);overflow-wrap:anywhere}
+.desk .dc .tel{overflow-wrap:anywhere}
+.desk .dc .tel a:not(.pdf){font-family:var(--serif);font-size:18px;color:var(--ink)}
+.desk .dc .tel a[href^=mailto]{font-family:var(--sans);font-size:15px;color:var(--navy)}
 .desk:last-child{border-bottom:0}
 .desk:hover{background:var(--band)}
 .desk b{font-weight:600}
-.desk .hrs{font-size:13px;color:var(--ink2)}
-.desk .tel a{font-size:18px}
 .tbl{background:var(--bg);border:1px solid var(--hair);border-radius:var(--r);overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
 table.ctab{min-width:560px}

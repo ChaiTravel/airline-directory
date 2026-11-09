@@ -134,9 +134,11 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
   if (!alive()) return;
   if (editMode) return renderAirlineEdit(a, { sections, contacts, contracts, links });
   const used = new Set();
+  // contract titles behave like links inside note text, opening the Chai-hosted PDF
+  const titleLinks = contracts.filter(c => c.chai_file_path).map(c => ({ id: 'contract:' + c.id, label: c.title, chai_file_path: c.chai_file_path, is_pdf: true }));
   function lineHtml(l) {
     const hits = [];
-    for (const k of [...links].sort((x, y) => (y.label || '').length - (x.label || '').length)) {
+    for (const k of [...links, ...titleLinks].sort((x, y) => (y.label || '').length - (x.label || '').length)) {
       if (!k.label || k.label.length < 3) continue;
       const i = l.indexOf(k.label); if (i < 0) continue;
       const before = l[i - 1] || ' ', after = l[i + k.label.length] || ' ';
@@ -174,10 +176,17 @@ async function renderAirline(slug, alive = () => true, editMode = false) {
     <div class="sec"><h3>Sales contacts</h3>${peopleCard}</div>
     <div class="sec"><h3>Quick dial<small>Tap to call</small></h3>${quickCard}</div>
   </div>`);
-  if (desks.length) main.push(`<div class="sec"><h3>Support desks</h3><div class="desks">${desks.map(c => `<div class="desk">
-      <span><b>${esc(c.label || kindName[c.kind] || '')}</b>${c.name ? `<br><span class="muted" style="font-size:13px">${esc(c.name)}</span>` : ''}</span>
-      <span class="tel">${c.phone ? linkify(c.phone) : c.queue ? `<span class="queue" title="Sabre queue">${esc(c.queue)}</span>` : c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '<span class="empty">—</span>'}</span>
-      <span class="hrs">${[c.hours ? esc(c.hours) : '', (c.phone || c.queue) && c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '', c.phone && c.queue ? `<span class="queue">${esc(c.queue)}</span>` : '', c.notes ? linkify(c.notes) : ''].filter(Boolean).join(' · ')}</span></div>`).join('')}</div></div>`);
+  if (desks.length) main.push(`<div class="sec"><h3>Support desks</h3><div class="desks">${desks.map(c => {
+      const slots = [];
+      if (c.phone) slots.push(linkify(c.phone));
+      if (c.email) slots.push(`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`);
+      if (c.queue) slots.push(`<span class="queue" title="Sabre queue">${esc(c.queue)}</span>`);
+      if (c.phone_mobile) slots.push(linkify(c.phone_mobile));
+      const [p1, p2] = slots;
+      return `<div class="desk">
+      <span class="dl"><b>${esc(c.label || kindName[c.kind] || '')}</b>${c.name ? `<span class="sub">${esc(c.name)}</span>` : ''}${c.hours ? `<span class="sub">${esc(c.hours)}</span>` : ''}</span>
+      <span class="dc">${p1 ? `<span class="tel">${p1}</span>` : '<span class="empty">—</span>'}${c.notes ? `<span class="sub">${linkify(c.notes)}</span>` : ''}</span>
+      <span class="dc">${p2 ? `<span class="tel">${p2}</span>` : ''}${slots[2] ? `<span class="sub">${slots[2]}</span>` : ''}</span></div>`; }).join('')}</div></div>`);
   if (contracts.length) {
     // Notes from the page text: the remainder of any line that starts with a contract title (minus the "(CODE)")
     const cLines = sections.filter(s => s.heading === 'Contracts & commission').flatMap(s => s.body.split('\n'));
