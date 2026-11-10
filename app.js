@@ -1,4 +1,4 @@
-/* Chai Travel Advisors · Airline Directory · v21 */
+/* Chai Travel Advisors · Airline Directory · v22 */
 const SUPABASE_URL = 'https://ijidkximugxmbxwbvdcs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wN5ikRMw9-4K8kS1B2_xJw_E1DNjXdv'; // publishable key: safe in the page, RLS enforces access
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -42,7 +42,7 @@ function renderLogin(msg) {
       <label for="ml-email" class="sr">Work email</label>
       <input type="email" id="ml-email" name="email" placeholder="you@youragency.com" autocomplete="email" required>
       <button type="submit" class="btn2 primary" id="ml-go">Email me a sign-in code</button>
-      <p class="hint">No Google or Microsoft account? We’ll email you a one-time 6-digit code.</p>
+      <p class="hint">No Google or Microsoft account? We’ll email you a one-time sign-in code.</p>
     </form>
     <p class="fine">${msg ? esc(msg) : 'Access is by invitation. Not on the list? <a href="mailto:michael@chaitravel.com?subject=Airline%20Directory%20access">Ask an administrator</a>.'}</p>
     <p class="foot">Chai Travel Advisors · internal use</p>
@@ -66,9 +66,9 @@ async function sendMagicLink(e) {
     form.querySelector('.hint').innerHTML = `<span class="err">${esc(msg)}</span>`;
     return;
   }
-  form.innerHTML = `<div class="sent"><strong>Check your inbox.</strong><p>We emailed a 6-digit code to <b>${esc(email)}</b>. Enter it below — it expires in one hour.</p></div>
+  form.innerHTML = `<div class="sent"><strong>Check your inbox.</strong><p>We emailed a sign-in code to <b>${esc(email)}</b>. Enter it below — it expires in one hour.</p></div>
     <label for="ml-code" class="sr">Sign-in code</label>
-    <input type="text" id="ml-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" placeholder="123456" class="code" autofocus>
+    <input type="text" id="ml-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" placeholder="Enter code" class="code" autofocus>
     <button type="submit" class="btn2 primary" id="ml-verify">Sign in</button>
     <p class="hint">Didn’t get it? Check spam, or <a href="#" id="ml-again">send another code</a>.</p>`;
   form.querySelector('#ml-again').onclick = ev => { ev.preventDefault(); renderLogin(); document.getElementById('ml-email').value = email; };
@@ -80,7 +80,7 @@ async function verifyCode(e, email) {
   e.preventDefault();
   const form = e.currentTarget, input = form.querySelector('#ml-code'), go = form.querySelector('#ml-verify');
   const token = input.value.replace(/\D/g, '');
-  if (token.length !== 6) { input.focus(); form.querySelector('.hint').innerHTML = '<span class="err">Enter the 6-digit code from the email.</span>'; return; }
+  if (token.length < 6 || token.length > 10) { input.focus(); form.querySelector('.hint').innerHTML = '<span class="err">Enter the code from the email (digits only).</span>'; return; }
   go.disabled = true; go.textContent = 'Checking…';
   const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
   if (error) {

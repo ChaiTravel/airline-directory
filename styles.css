@@ -57,7 +57,7 @@ main>p.muted,main>p.empty{padding:40px var(--pad)}
 .login .magic{width:100%;display:flex;flex-direction:column;gap:10px;margin:0}
 .login .magic input{width:100%;height:50px;padding:0 16px;border:1px solid var(--line);border-radius:var(--r-s);font:inherit;font-size:15px;background:var(--bg);color:var(--ink)}
 .login .magic input:focus{outline:none;border-color:var(--ink)}
-.login .magic input.code{text-align:center;font-size:24px;letter-spacing:.35em;font-variant-numeric:tabular-nums}
+.login .magic input.code{text-align:center;font-size:22px;letter-spacing:.25em;font-variant-numeric:tabular-nums}
 .login .magic .btn2{height:50px;border-radius:var(--r-s);font-size:15px}
 .login .magic .btn2:disabled{opacity:.6;cursor:default}
 .login .magic .hint{font-size:13px;color:var(--muted);margin:0}
